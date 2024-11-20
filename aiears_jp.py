@@ -9,7 +9,6 @@ import time
 
 # Third-party imports - Core
 import torch
-from dotenv import load_dotenv
 from transformers import (
     AutoModelForSpeechSeq2Seq,
     AutoProcessor,
