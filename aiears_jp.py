@@ -63,14 +63,9 @@ pipe = pipeline(
     device=device_str,
 )
 
-output_dir = 'outputs'
-os.makedirs(output_dir, exist_ok=True)
-
 # Updated: audio_queue now holds transcription text
 audio_queue = queue.Queue()
 
-playback_thread = None  # Removed TTS playback components
-playback_stop_event = threading.Event()  # Removed TTS playback components
 stop_recording_event = threading.Event()
 
 # Noise gate to reduce whisper hallucinations - adjust this value based on your current environment background noise level 
@@ -190,11 +185,11 @@ def continuous_audio_recording():
 
 def transcription_worker():
     combined_audio_data = []
-    combined_duration = 0.0  # in seconds
+    combined_duration = 1.5  # in seconds
     target_min_duration = 0.3  # Minimum duration to consider processing
-    target_max_duration = 10.0  # Maximum duration to prevent long waits
-    min_transcribe_duration = 0.3  # Minimum duration after silence removal
-    silence_timeout = 2.0  # Increased to 2.0 seconds
+    target_max_duration = 2.0  # Maximum duration to prevent long waits
+    min_transcribe_duration = 0.2  # Minimum duration after silence removal
+    silence_timeout = 0  # Increased to 2.0 seconds
     last_voice_activity_time = time.time()
 
     while not stop_transcription_event.is_set():
