@@ -1,7 +1,9 @@
+# HEARING-AID-VR - https://github.com/Vinventive/HEARING-AID-VR - 2024-11-21
+
 # Standard library imports
 import io
 import logging
-import os
+import warnings
 import queue
 import sys
 import threading
@@ -29,10 +31,14 @@ import webrtcvad
 
 # Initialize logging for debugging
 logging.basicConfig(
-    filename='app.log',
+    filename='app-debug.log',
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)s:%(message)s'
 )
+
+# Suppress future warnings and transformer logs to keep the console clean
+warnings.filterwarnings("ignore", category=FutureWarning)
+logging.getLogger("transformers").setLevel(logging.ERROR)
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -63,14 +69,13 @@ pipe = pipeline(
     device=device_str,
 )
 
-# Updated: audio_queue now holds transcription text
 audio_queue = queue.Queue()
 
 stop_recording_event = threading.Event()
 
 # Noise gate to reduce whisper hallucinations - adjust this value based on your current environment background noise level 
 
-ENERGY_THRESHOLD = 0  # Updated energy threshold (example value)
+ENERGY_THRESHOLD = 0
 
 def log_memory_usage():
     process = psutil.Process()
@@ -82,14 +87,15 @@ def log_memory_usage():
 def transcribe_with_whisper_sync(audio_data):
     try:
         # Use the pipeline to transcribe the audio data
-        result = pipe(audio_data, generate_kwargs={"language": "english"})
+        result = pipe(audio_data, generate_kwargs={"language": "english", "return_timestamps": True})
         transcription = result["text"].strip()
 
         # Handle hallucinated phrases
         whisper_hallucinated_phrases = [
             "Goodbye.", "Thanks for watching!", "Thank you for watching!",
             "I feel like I'm going to die.", "Thank you for watching.",
-            "Transcription by CastingWords", "Thank you."
+            "Transcription by CastingWords", "Thank you.", "I'm sorry.",
+            "Okay.", "Bye."
         ]
         if transcription in whisper_hallucinated_phrases:
             transcription = "."
@@ -137,7 +143,7 @@ def send_message_to_clients(message):
                 logging.error(f"Error sending message to client: {e}")
                 clients.remove(client)
 
-# New queues and events for continuous recording and transcription
+# Queues and events for continuous recording and transcription
 transcription_audio_queue = queue.Queue()
 stop_transcription_event = threading.Event()
 
@@ -185,11 +191,11 @@ def continuous_audio_recording():
 
 def transcription_worker():
     combined_audio_data = []
-    combined_duration = 1.5  # in seconds
+    combined_duration = 1.5 
     target_min_duration = 0.3  # Minimum duration to consider processing
     target_max_duration = 2.0  # Maximum duration to prevent long waits
-    min_transcribe_duration = 0.2  # Minimum duration after silence removal
-    silence_timeout = 0  # Increased to 2.0 seconds
+    min_transcribe_duration = 0.3  # Minimum duration after silence removal
+    silence_timeout = 0
     last_voice_activity_time = time.time()
 
     while not stop_transcription_event.is_set():
@@ -258,6 +264,71 @@ def transcription_worker():
 def main():
     # Initialize and start TCP server
     start_tcp_server()
+
+    # ASCII art
+    stay_comfy = """
+    
+                                         ...-====+***+++====-...   .-=++++=-..                      
+                     .:---:....    ...-=+#%%@@%%%%##*###%%%@@%%#+=*%%%*++*####*-.                   
+                   :+%%%#%%%%%%*--=#%%%#++=-                 -++%@@=..    ...-+%%*:                 
+                 .*@#-:...::+=+@@@#*=:..                       .#@=            .-*%*:              
+                :%%=.          :%@:                            .%%.               -#%=.            
+               -@*.             -@=                             +*.                .=@*:           
+             .+@+.              .:.   ..-==+*##****##*++==..    ..                   -%%=          
+            .#%-                   :=+**                 *##+-.                       :%@+         
+           -%%:                 .=*#*=:.                  .:=*%#-.                     -@@=        
+          =@*.                -+#*-.   ..                    .:+%%=.                    =@%.       
+        .+@+.               -*#=.     =%.                       .=##+.                  .#@+.      
+       .*@*.              :##=.      -@+                          .-*#-.                 -@%.      
+       -@%.             .+%+.       .%#.                             -##:                .%@-      
+      .*@+             :##:         =@=                               .=#+.    ==.        *@=      
+      .#@=       .   .=%+.         .#@:                    :+:          .*#-.  *@*       .%@-      
+       +@*     .#*. :#%-           :@#.                    :@=            -%#: .%@*:.  .:+@%.      
+       .%@=:..-#%- -%*.            +@=                     :@#.            :*@+..+%@%**%@@#-       
+        :*@@#%@*..*%=              *@:                     .*%.              -%#: .=***%@+.        
+         .-*@@+ :%#:              .*@=                     .#+      :=-.      .*@*.    =@#         
+           *@#:+#=              .+%@@=                     :@+      .#@=        :#%=.  .#@-        
+          =@@##+.        ..   .+#+=@@=                     =@@=.     .*%:        .-##=. *@=        
+     .:::=%@%+:         :%=.:*%*: .@@=                    .#%+%#-     .%#.         .-%#-=@#.       
+     +@%**+-.           *@=*#+:   .-@#.                   :@+ .+%*-.   -@+.          .+%*@@:       
+     :*#=.             :@@*-..:=+: :@%.                   +@:   .=*#+=:.#@.            .=%@*.      
+       -*#-:.         .#@-:+#@@@@= .*@-                  -@* -***+--+*%%@@=          .:-+#@%.      
+       .*@@*.         =@#%@@@@%%*:  :@*.                .#@- =@@@@@%*-::=@*.  .==:.. -%@+=%@-      
+       -@@*-..:-.    .%%=+-:::..     +@=       ...      =@+. .=++##@@@%: *@:  :@@###*+%%= *@=      
+       =@*=**%@#:    :@-             .*@=.     .#%:   .=@#.      ..::::. -@=  :@%.:::::.  *@+      
+      .%@- ..=@+    .*@.              .#@*      =@%=. .@%.               :@=  :@%.        +@#.     
+      :@@.   .@+    :@#.               .#@+.     *@%#+=@%.               :@+  :@*.        :@@-     
+      :@%.   .#+    :@+                 .=%#=.   +@.:*##*.               :@+  :@+         .@@=     
+      +@+     *#.   :@+      .....        .*%#=:.:%.  ...  .::--::..     .@=  :@+         .#@+     
+      *@+     -@-   :@= .:=+*#%%%#*-.       .=#%*+@=     -*@@@@@@@@#*=:. =@: .+@=          +@+     
+     .#@=     .#%:  :@*+%@@@@@@@@@@@%:.       .:--=.   .+@@@@@@@@@@@@@@#+@#. .@%.          +@#.    
+     .@@:      .%#. :@@@@@@@@%#*****#*.                .**======**#@@@@@@@=  -@-           +@%.    
+     .@@:       -@#..%@@%*+=-.      ..                            .:-=*@@#.  *#.          .#@*.    
+     .@@:        :*%+++                                                *@-  -@=           :@@+     
+     .@@=         +@*                   .#%%%@@@@@@@@@#.              -@=  :%#.           +@@:     
+     .%@+        .@@                    .%@:::::::::@@+             .+%=:-*@#.           .#@*      
+     .+@*.       .@@.                   .*@.       :@@:           .=%@**#%@=.            -@@-      
+      .@@.       .%@.                    :@+       +@#.           :##*--+#:             .#@#.      
+       =@*.       =@=                    .#@-     .%@:      ...    .  -#+.              -@@:       
+        +@+.      .+@=.                   .*@.....*@=   .-*#%@#*+=:.-*#-               .%@*        
+         +@+.       =%#=:.       .:=++++:   -*###%#-  :*%@#++++%@@@#@=                .#@#.        
+          =@#:.      :=#@#*+-:.=*%@@@@@@@#=          -@@%-.    ..-*@@*:              :#@%:         
+           -%@#-       .-+#@@@@@@%#*+==-:+%@+.       -@@+.          :+@@+.          .+@@#:          
+            .+@@#-.       -%@%*=:.       :%@#+++++++%@-              :%@%-       .=%@%=.           
+              .=%@%+:.  :*@%-.            :%@@@####@@+                :#@@*.    .%@#+.             
+                .-*%%*=*@@#.               -@@%...-@#.                 .+@@#.   .#@=               
+                   .=%@@%=.                .#@@.  *@:                    -%@#.   .*@=              
+                   -%@@%:                   +@@- .@#.                     -%@#.   .#@:             
+                  +@@@#:                    :@@+ -@+                       -%@#:   :@%.            
+                 +@@@+.                     .%@+ +@+                        .%@#.   +@+            
+                -@@@=                       .*@* +@+                         +@@*.  .@@.           
+               .%@@*                         =@#.-@+                         :%@@:   *@=           
+               =@@+.                         :@%..%#.                         +@@+   -@#.           
+"""
+
+    # Print the ASCII art at the start of the app
+    print(stay_comfy)
+    print("<<< This is the core component of the Hearing AID VR Overlay >>>\n<<< Please don't close this window while VR Overlay is running >>>\n\nLet this comfy lil fella support you in the background")
 
     # Start continuous audio recording thread
     recording_thread = threading.Thread(target=continuous_audio_recording, daemon=True)
