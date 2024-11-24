@@ -1,7 +1,7 @@
 # Documentation is under construction (WIP)
 # 📝 Changelog
 - [ ] Test the VR overlay on different Nvidia GPUs as well as AMD and Intel platform.
-- [ ] Consider adding an optional Grok/OpenAI Whisper API access for no cuda capable PC systems.
+- [ ] Consider adding an optional Groq/OpenAI Whisper API access for no cuda capable PC systems.
 - [ ] Utilize Whisper-Large-v3-Turbo timestamping and other features to improve real-time captioning for the local build.
 - [ ] Build VR dashboard to manage all VR Overlay settings.
 - [ ] Make it accessible for free on Steam for everyone.
