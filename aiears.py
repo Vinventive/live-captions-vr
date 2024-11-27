@@ -43,16 +43,17 @@ logging.getLogger("transformers").setLevel(logging.ERROR)
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Load the Whisper large-v3-turbo model using Transformers
-device_str = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
 model_id = "openai/whisper-large-v3-turbo"
 
 try:
     whisper_model = AutoModelForSpeechSeq2Seq.from_pretrained(
-        model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+        model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True, 
+        # attn_implementation="flash_attention_2" # Uncomment this line if you want to use flash attention 2
     )
-    whisper_model.to(device_str)
+    whisper_model.to(device)
     logging.info("Whisper model loaded successfully.")
 except Exception as e:
     logging.error(f"Failed to load Whisper model: {e}")
@@ -66,7 +67,7 @@ pipe = pipeline(
     tokenizer=processor.tokenizer,
     feature_extractor=processor.feature_extractor,
     torch_dtype=torch_dtype,
-    device=device_str,
+    device=device,
 )
 
 audio_queue = queue.Queue()
@@ -86,7 +87,7 @@ def log_memory_usage():
 
 def transcribe_with_whisper_sync(audio_data):
     try:
-        # Use the pipeline to transcribe the audio data
+        # Use the pipeline to transcribe the audio data - set here your own language - for example "language": "japanese"
         result = pipe(audio_data, generate_kwargs={"language": "english", "return_timestamps": True})
         transcription = result["text"].strip()
 
@@ -139,6 +140,7 @@ def send_message_to_clients(message):
         for client in clients[:]:  # Make a copy to avoid modification during iteration
             try:
                 client.sendall((message + "\n").encode('utf-8'))
+                # print(f"Sent message: {message}")  # Log the sent message to the console
             except Exception as e:
                 logging.error(f"Error sending message to client: {e}")
                 clients.remove(client)
@@ -157,7 +159,7 @@ def continuous_audio_recording():
                     frames_per_buffer=320)  # 20 ms frames
     speech_buffer = []
     silence_duration = 0
-    max_silence_duration = 0.5  # seconds
+    max_silence_duration = 0.03  # seconds
     is_speaking = False
     logging.info("Starting continuous audio recording...")
     while not stop_recording_event.is_set():
@@ -191,7 +193,7 @@ def continuous_audio_recording():
 
 def transcription_worker():
     combined_audio_data = []
-    combined_duration = 1.5 
+    combined_duration = 1.5
     target_min_duration = 0.3  # Minimum duration to consider processing
     target_max_duration = 2.0  # Maximum duration to prevent long waits
     min_transcribe_duration = 0.3  # Minimum duration after silence removal
