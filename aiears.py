@@ -85,10 +85,8 @@ def log_memory_usage():
         logging.info(f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024 / 1024:.2f} MB")
 
 def limit_repetitions(text):
-    # 1. Limit single character repetition (e.g., "aaaaaaa" -> "aaaa")
-    text = re.sub(r'(.)\1{3,}', r'\1\1\1\1', text)  # Limit to 4 identical chars
+    text = re.sub(r'(.)\1{3,}', r'\1\1\1\1', text)
 
-    # 2. Limit repeated words to max 3 in a row
     words = text.split()
     limited_words = []
     last_word = None
@@ -106,8 +104,6 @@ def limit_repetitions(text):
 
     text = ' '.join(limited_words)
 
-    # 3. Limiting repeated sentences
-    # Split using sentence-ending punctuation, capturing the punctuation
     parts = re.split(r'([.?!])', text)
 
     sentences = []
@@ -131,34 +127,30 @@ def limit_repetitions(text):
 
     cleaned_text = ' '.join(limited_sentences).strip()
 
-    def find_smallest_repeating_unit(s):
-        ss = (s+s)[1:-1]
-        idx = ss.find(s)
-        if idx == -1:
-            return s
-        else:
-            return s[:idx+1]
-
-    if len(sentences) <= 1:
-        s = cleaned_text.strip()
-        if s:
-            unit = find_smallest_repeating_unit(s)
-            if unit != s:
-                words_all = s.split()
-                words_unit = unit.split()
-                unit_len = len(words_unit)
-                count = 0
-                for i in range(0, len(words_all), unit_len):
-                    chunk = " ".join(words_all[i:i+unit_len])
-                    if chunk == unit:
-                        count += 1
+    if len(limited_sentences) <= 1:
+        words_all = cleaned_text.split()
+        if len(words_all) > 3:
+            length = len(words_all)
+            found_repetition = False
+            for pattern_len in range(1, (length // 2) + 1):
+                pattern = words_all[:pattern_len]
+                repeat_count = 1
+                idx = pattern_len
+                while idx < length:
+                    chunk = words_all[idx:idx+pattern_len]
+                    if chunk == pattern:
+                        repeat_count += 1
+                        idx += pattern_len
                     else:
                         break
-                if count > 2:
-                    final_words = words_unit * 2
-                    remainder = words_all[count*unit_len:]
-                    final_words.extend(remainder)
-                    cleaned_text = " ".join(final_words).strip()
+
+                if repeat_count > 2:
+                    remainder_start = pattern_len * repeat_count
+                    remainder = words_all[remainder_start:]
+                    new_words = pattern * 2 + remainder
+                    cleaned_text = " ".join(new_words).strip()
+                    found_repetition = True
+                    break
 
     return cleaned_text
 
