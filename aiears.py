@@ -129,9 +129,9 @@ def limit_repetitions(text):
 
     if len(limited_sentences) <= 1:
         words_all = cleaned_text.split()
-        if len(words_all) > 3:
-            length = len(words_all)
-            found_repetition = False
+        length = len(words_all)
+        if length > 3:
+            # Attempt to find a repeating word pattern
             for pattern_len in range(1, (length // 2) + 1):
                 pattern = words_all[:pattern_len]
                 repeat_count = 1
@@ -143,16 +143,37 @@ def limit_repetitions(text):
                         idx += pattern_len
                     else:
                         break
-
                 if repeat_count > 2:
+                    # Keep only 2 repeats and then remainder
                     remainder_start = pattern_len * repeat_count
                     remainder = words_all[remainder_start:]
                     new_words = pattern * 2 + remainder
                     cleaned_text = " ".join(new_words).strip()
-                    found_repetition = True
                     break
 
-    return cleaned_text
+
+    if len(cleaned_text) > 20:
+        s = cleaned_text
+        ss = (s+s)[1:-1]
+        idx = ss.find(s)
+        if idx != -1:
+            unit = s[:idx+1]
+
+            unit_len = len(unit)
+            count = 1
+            start_idx = unit_len
+            while start_idx + unit_len <= len(s):
+                chunk = s[start_idx:start_idx+unit_len]
+                if chunk == unit:
+                    count += 1
+                    start_idx += unit_len
+                else:
+                    break
+            if count > 2:
+                remainder = s[start_idx:]
+                cleaned_text = unit * 2 + remainder
+
+    return cleaned_text.strip()
 
 def transcribe_with_whisper_sync(audio_data):
     try:
@@ -310,9 +331,7 @@ def transcription_worker():
                     else:
                         logging.info("Audio too short after processing, discarding.")
                 else:
-                    # No audio data accumulated
                     pass
-
         except Exception as e:
             logging.error(f"Error in transcription_worker: {e}")
 
