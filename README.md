@@ -4,4 +4,4 @@
 ### Portable standalone version for Windows is available.
 
 ### The latest release supports NVIDIA CUDA GPU and CPU mode.
-# [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.1-beta/Hearing-AID-VR-Package-Installer.7z)
+# [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.1/Hearing-AID-VR-Package-Installer.7z)
