@@ -1,4 +1,4 @@
-# HEARING-AID-VR - https://github.com/Vinventive/HEARING-AID-VR - 2024-11-21
+# HEARING-AID-VR - https://github.com/Vinventive/HEARING-AID-VR - 2024-12-07
 
 # Standard library imports
 import io
@@ -85,10 +85,10 @@ def log_memory_usage():
         logging.info(f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024 / 1024:.2f} MB")
 
 def limit_repetitions(text):
-    # 1. Limiting single character repetition
+    # 1. Limit single character repetition (e.g., "aaaaaaa" -> "aaaa")
     text = re.sub(r'(.)\1{3,}', r'\1\1\1\1', text)  # Limit to 4 identical chars
 
-    # 2. Limiting repeated words to max 3 in a row
+    # 2. Limit repeated words to max 3 in a row
     words = text.split()
     limited_words = []
     last_word = None
@@ -107,7 +107,7 @@ def limit_repetitions(text):
     text = ' '.join(limited_words)
 
     # 3. Limiting repeated sentences
-    # Spliting using sentence-ending punctuation, capturing the punctuation
+    # Split using sentence-ending punctuation, capturing the punctuation
     parts = re.split(r'([.?!])', text)
 
     sentences = []
@@ -129,9 +129,38 @@ def limit_repetitions(text):
         limited_sentences.append(s)
         last_sentence = s
 
-    # Re-joining sentences with a space
-    cleaned_text = ' '.join(limited_sentences)
-    return cleaned_text.strip()
+    cleaned_text = ' '.join(limited_sentences).strip()
+
+    def find_smallest_repeating_unit(s):
+        ss = (s+s)[1:-1]
+        idx = ss.find(s)
+        if idx == -1:
+            return s
+        else:
+            return s[:idx+1]
+
+    if len(sentences) <= 1:
+        s = cleaned_text.strip()
+        if s:
+            unit = find_smallest_repeating_unit(s)
+            if unit != s:
+                words_all = s.split()
+                words_unit = unit.split()
+                unit_len = len(words_unit)
+                count = 0
+                for i in range(0, len(words_all), unit_len):
+                    chunk = " ".join(words_all[i:i+unit_len])
+                    if chunk == unit:
+                        count += 1
+                    else:
+                        break
+                if count > 2:
+                    final_words = words_unit * 2
+                    remainder = words_all[count*unit_len:]
+                    final_words.extend(remainder)
+                    cleaned_text = " ".join(final_words).strip()
+
+    return cleaned_text
 
 def transcribe_with_whisper_sync(audio_data):
     try:
