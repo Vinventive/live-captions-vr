@@ -1,4 +1,5 @@
 # Hearing AID VR Overlay
+<img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
 ![overlay-test](https://github.com/user-attachments/assets/dd779660-1255-4bef-94bf-c7082f068f50)
 
