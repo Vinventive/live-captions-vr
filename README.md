@@ -1,5 +1,4 @@
 # Hearing AID VR Overlay
-<img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
 ![overlay-test](https://github.com/user-attachments/assets/dd779660-1255-4bef-94bf-c7082f068f50)
 
@@ -14,3 +13,4 @@ Additionally, the overlay automatically attempts to translate speech from differ
 
 ### The latest release supports NVIDIA CUDA GPU and CPU mode.
 # [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.1/Hearing-AID-VR-Package-Installer.7z)
+<img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
