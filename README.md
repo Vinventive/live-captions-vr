@@ -17,9 +17,9 @@ Additionally, the overlay automatically attempts to translate speech from differ
 <img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
 ## Acknowledgements
-- NxLL (nilpkthmsk) [Unity - Text Mesh Pro Japanese](https://github.com/nilpkthmsk/Unity_TMP_Japanese) Japanese Atlas Font Assets
-- FFmpeg.org [FFmpeg](https://www.ffmpeg.org/) Used for audio processing
-- NVIDIA Corporation [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-1-download-archive) Used for GPU-acceleration
-- Vincent Burel [VB-Audio](http://www.vb-cable.com/) Virtual Audio Cable Drivers
-- OpenAI [Whisper](https://huggingface.co/openai/whisper-large-v3-turbo) Model used for speech recognition
+- NxLL (nilpkthmsk) [Unity - Text Mesh Pro Japanese](https://github.com/nilpkthmsk/Unity_TMP_Japanese)
+- icedterminal [FFmpeg installer](https://github.com/icedterminal/ffmpeg-installer)
+- NVIDIA Corporation [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-1-download-archive)
+- Vincent Burel VB-Audio [Virtual Audio Cable Driver](http://www.vb-cable.com/)
+- OpenAI [Whisper](https://huggingface.co/openai/whisper-large-v3-turbo)
 - Special thanks to Dianamite and TachDeaf for helping with this project
