@@ -1,4 +1,4 @@
-# HEARING-AID-VR - https://github.com/Vinventive/HEARING-AID-VR - 2024-12-07
+# HEARING-AID-VR - https://github.com/Vinventive/HEARING-AID-VR - 2024-12-23
 
 # Standard library imports
 import io
@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import re
+
 
 # Third-party imports - Core
 import torch
@@ -41,6 +42,7 @@ logging.basicConfig(
 warnings.filterwarnings("ignore", category=FutureWarning)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 
+# Ensure UTF-8 encoding for stdout
 sys.stdout.reconfigure(encoding='utf-8')
 
 # Load the Whisper large-v3-turbo model using Transformers
@@ -85,95 +87,145 @@ def log_memory_usage():
         logging.info(f"GPU memory allocated: {torch.cuda.memory_allocated() / 1024 / 1024:.2f} MB")
 
 def limit_repetitions(text):
-    text = re.sub(r'(.)\1{3,}', r'\1\1\1\1', text)
+    text = re.sub(r'(.)\1{3,}', r'\1\1\1', text)  # Keep at most 3
 
-    words = text.split()
-    limited_words = []
-    last_word = None
+    def limit_hyphenated_repeats(token):
+        pattern = re.compile(r'(\b\w+)(?:-\1){3,}-?')
+        while True:
+            match = pattern.search(token)
+            if not match:
+                break
+            sub_pattern = match.group(1)
+            replacement = '-'.join([sub_pattern] * 3) + '-'
+            token = pattern.sub(replacement, token, count=1)
+        return token
+
+    tokens = text.split()
+    tokens = [limit_hyphenated_repeats(token) for token in tokens]
+    text = ' '.join(tokens)
+
+    def limit_repeated_syllables(token, max_repeats=3):
+        for sub_len in range(2, 7):  # Adjust the range as needed
+            pattern = re.compile(r'(\b\w{' + str(sub_len) + r'})\1{' + str(max_repeats) + r',}')
+            while True:
+                match = pattern.search(token)
+                if not match:
+                    break
+                repeated_pattern = match.group(1)
+                replacement = repeated_pattern * max_repeats
+                token = pattern.sub(replacement, token, count=1)
+        return token
+
+    tokens = text.split()
+    tokens = [limit_repeated_syllables(token) for token in tokens]
+    text = ' '.join(tokens)
+
+    filtered_tokens = []
+    last_token = None
     repeat_count = 0
-    max_word_repetition = 3
 
-    for w in words:
-        if w == last_word:
+    for t in tokens:
+        if t == last_token:
             repeat_count += 1
         else:
             repeat_count = 1
-            last_word = w
-        if repeat_count <= max_word_repetition:
-            limited_words.append(w)
+            last_token = t
+        if repeat_count <= 3:
+            filtered_tokens.append(t)
 
-    text = ' '.join(limited_words)
+    tokens = filtered_tokens
 
-    parts = re.split(r'([.?!])', text)
+    def remove_repeated_patterns(token_list, pattern_len, max_repeats=3):
+        i = 0
+        while i + pattern_len <= len(token_list):
+            pattern = token_list[i:i + pattern_len]
+            repeat_count = 1
+            j = i + pattern_len
+            while j + pattern_len <= len(token_list) and token_list[j:j + pattern_len] == pattern:
+                repeat_count += 1
+                j += pattern_len
+            if repeat_count > max_repeats:
+                keep_upto = i + (pattern_len * max_repeats)
+                token_list = token_list[:keep_upto] + token_list[j:]
+            else:
+                i = j
+        return token_list
 
-    sentences = []
-    for i in range(0, len(parts), 2):
-        sentence_text = parts[i].strip()
-        if not sentence_text:
-            continue
-        punctuation = parts[i+1].strip() if i+1 < len(parts) else ''
-        full_sentence = (sentence_text + punctuation).strip()
-        if full_sentence:
-            sentences.append(full_sentence)
+    for pl in [3, 2, 1]:
+        tokens = remove_repeated_patterns(tokens, pl, max_repeats=3)
 
-    # Limiting repeated identical sentences
-    limited_sentences = []
-    last_sentence = None
-    for s in sentences:
-        if s == last_sentence:
-            continue
-        limited_sentences.append(s)
-        last_sentence = s
-
-    cleaned_text = ' '.join(limited_sentences).strip()
-
-    if len(limited_sentences) <= 1:
-        words_all = cleaned_text.split()
-        length = len(words_all)
-        if length > 3:
-            # Attempt to find a repeating word pattern
-            for pattern_len in range(1, (length // 2) + 1):
-                pattern = words_all[:pattern_len]
-                repeat_count = 1
-                idx = pattern_len
-                while idx < length:
-                    chunk = words_all[idx:idx+pattern_len]
-                    if chunk == pattern:
-                        repeat_count += 1
-                        idx += pattern_len
-                    else:
-                        break
-                if repeat_count > 2:
-                    # Keep only 2 repeats and then remainder
-                    remainder_start = pattern_len * repeat_count
-                    remainder = words_all[remainder_start:]
-                    new_words = pattern * 2 + remainder
-                    cleaned_text = " ".join(new_words).strip()
+    def limit_repeated_phrases(text, max_repeats=3, max_phrase_len=5):
+        for phrase_len in range(2, max_phrase_len + 1):
+            pattern = re.compile(r'(\b(?:\w+\s+){' + str(phrase_len - 1) + r'}\w+)(?:\s+\1){' + str(max_repeats) + r',}')
+            while True:
+                match = pattern.search(text)
+                if not match:
                     break
+                repeated_phrase = match.group(1)
+                # Replace the repeated phrases with max_repeats occurrences
+                replacement = ' '.join([repeated_phrase] * max_repeats)
+                text = pattern.sub(replacement, text, count=1)
+        return text
 
+    text = limit_repeated_phrases(' '.join(tokens), max_repeats=3, max_phrase_len=5)
+    tokens = text.split()
 
-    if len(cleaned_text) > 20:
-        s = cleaned_text
-        ss = (s+s)[1:-1]
-        idx = ss.find(s)
-        if idx != -1:
-            unit = s[:idx+1]
-
-            unit_len = len(unit)
-            count = 1
-            start_idx = unit_len
-            while start_idx + unit_len <= len(s):
-                chunk = s[start_idx:start_idx+unit_len]
-                if chunk == unit:
-                    count += 1
-                    start_idx += unit_len
-                else:
+    def limit_concatenated_repeats(token, max_repeats=3):
+        for sub_len in range(2, 7):  # Adjust based on expected syllable lengths
+            pattern = re.compile(r'(\b\w{' + str(sub_len) + r'})\1{' + str(max_repeats) + r',}')
+            while True:
+                match = pattern.search(token)
+                if not match:
                     break
-            if count > 2:
-                remainder = s[start_idx:]
-                cleaned_text = unit * 2 + remainder
+                repeated_pattern = match.group(1)
+                replacement = repeated_pattern * max_repeats
+                token = pattern.sub(replacement, token, count=1)
+        return token
 
-    return cleaned_text.strip()
+    tokens = text.split()
+    tokens = [limit_concatenated_repeats(token) for token in tokens]
+    text = ' '.join(tokens)
+
+    def detect_spammy_symbol_distribution(text, min_length=20, top_n=3, min_freq_percent=10, max_freq_diff_percent=20):
+        if len(text) < min_length:
+            return False
+
+        # Count the frequency of each symbol
+        symbol_counts = {}
+        for char in text:
+            symbol_counts[char] = symbol_counts.get(char, 0) + 1
+
+        # Sort symbols by frequency
+        sorted_symbols = sorted(symbol_counts.items(), key=lambda item: item[1], reverse=True)
+
+        if len(sorted_symbols) < top_n:
+            return False
+
+        top_symbols = sorted_symbols[:top_n]
+        total_length = len(text)
+
+        # Check if each top symbol meets the minimum frequency percentage
+        for symbol, count in top_symbols:
+            freq_percent = (count / total_length) * 100
+            if freq_percent < min_freq_percent:
+                return False
+
+        # Check if the frequencies are within the allowed difference
+        counts = [count for symbol, count in top_symbols]
+        max_count = max(counts)
+        min_count = min(counts)
+        if (max_count - min_count) / max_count * 100 > max_freq_diff_percent:
+            return False
+
+        return True
+
+    # Apply the spammy symbol distribution check
+    if detect_spammy_symbol_distribution(text):
+        logging.info("Spammy symbol distribution detected. Transcription discarded.")
+        return "."
+
+    cleaned_text = text.strip()
+    return cleaned_text
 
 def transcribe_with_whisper_sync(audio_data):
     try:
@@ -186,7 +238,10 @@ def transcribe_with_whisper_sync(audio_data):
             "Goodbye.", "Thanks for watching!", "Thank you for watching!",
             "I feel like I'm going to die.", "Thank you for watching.",
             "Transcription by CastingWords", "Thank you.", "I'm sorry.",
-            "Okay.", "Bye."
+            "Okay.", "Bye.", "I'm out.", "I'm going to go.", "I'm going to go",
+            "I'm going to go to the next one.", "I'm going to go to the next video.",
+            "I'm going to go to the top.", "I'm going to go to the top of the top.", 
+            "a little bit of"
         ]
 
         if transcription in whisper_hallucinated_phrases:
@@ -197,7 +252,7 @@ def transcribe_with_whisper_sync(audio_data):
 
         return transcription
     except Exception as e:
-        logging.error(f"Error in transcribe_with_whisper: {e}")
+        logging.error(f"Error in transcribe_with_whisper_sync: {e}")
         return "Error in transcription"
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
@@ -252,7 +307,7 @@ def continuous_audio_recording():
                     frames_per_buffer=320)
     speech_buffer = []
     silence_duration = 0
-    max_silence_duration = 0.03
+    max_silence_duration = 0.03  # 30 ms
     is_speaking = False
     logging.info("Starting continuous audio recording...")
     while not stop_recording_event.is_set():
@@ -295,7 +350,7 @@ def transcription_worker():
             try:
                 audio_data = transcription_audio_queue.get(timeout=0.1)
                 combined_audio_data.append(audio_data)
-                audio_duration = len(audio_data) / (2 * 16000)
+                audio_duration = len(audio_data) / (2 * 16000)  # bytes / (bytes_per_sample * sample_rate)
                 combined_duration += audio_duration
                 last_voice_activity_time = time.time()
             except queue.Empty:
@@ -342,63 +397,63 @@ def main():
     # ASCII art
     stay_comfy = """
     
-                                         ...-====+***+++====-...   .-=++++=-..                      
-                     .:---:....    ...-=+#%%@@%%%%##*###%%%@@%%#+=*%%%*++*####*-.                   
-                   :+%%%#%%%%%%*--=#%%%#++=-                 -++%@@=..    ...-+%%*:                 
-                 .*@#-:...::+=+@@@#*=:..                       .#@=            .-*%*:              
-                :%%=.          :%@:                            .%%.               -#%=.            
-               -@*.             -@=                             +*.                .=@*:           
-             .+@+.              .:.   ..-==+*##****##*++==..    ..                   -%%=          
-            .#%-                   :=+**                 *##+-.                       :%@+         
-           -%%:                 .=*#*=:.                  .:=*%#-.                     -@@=        
-          =@*.                -+#*-.   ..                    .:+%%=.                    =@%.       
-        .+@+.               -*#=.     =%.                       .=##+.                  .#@+.      
-       .*@*.              :##=.      -@+                          .-*#-.                 -@%.      
-       -@%.             .+%+.       .%#.                             -##:                .%@-      
-      .*@+             :##:         =@=                               .=#+.    ==.        *@=      
-      .#@=       .   .=%+.         .#@:                    :+:          .*#-.  *@*       .%@-      
-       +@*     .#*. :#%-           :@#.                    :@=            -%#: .%@*:.  .:+@%.      
-       .%@=:..-#%- -%*.            +@=                     :@#.            :*@+..+%@%**%@@#-       
-        :*@@#%@*..*%=              *@:                     .*%.              -%#: .=***%@+.        
-         .-*@@+ :%#:              .*@=                     .#+      :=-.      .*@*.    =@#         
-           *@#:+#=              .+%@@=                     :@+      .#@=        :#%=.  .#@-        
-          =@@##+.        ..   .+#+=@@=                     =@@=.     .*%:        .-##=. *@=        
-     .:::=%@%+:         :%=.:*%*: .@@=                    .#%+%#-     .%#.         .-%#-=@#.       
-     +@%**+-.           *@=*#+:   .-@#.                   :@+ .+%*-.   -@+.          .+%*@@:       
-     :*#=.             :@@*-..:=+: :@%.                   +@:   .=*#+=:.#@.            .=%@*.      
-       -*#-:.         .#@-:+#@@@@= .*@-                  -@* -***+--+*%%@@=          .:-+#@%.      
-       .*@@*.         =@#%@@@@%%*:  :@*.                .#@- =@@@@@%*-::=@*.  .==:.. -%@+=%@-      
-       -@@*-..:-.    .%%=+-:::..     +@=       ...      =@+. .=++##@@@%: *@:  :@@###*+%%= *@=      
-       =@*=**%@#:    :@-             .*@=.     .#%:   .=@#.      ..::::. -@=  :@%.:::::.  *@+      
-      .%@- ..=@+    .*@.              .#@*      =@%=. .@%.               :@=  :@%.        +@#.     
-      :@@.   .@+    :@#.               .#@+.     *@%#+=@%.               :@+  :@*.        :@@-     
-      :@%.   .#+    :@+                 .=%#=.   +@.:*##*.               :@+  :@+         .@@=     
-      +@+     *#.   :@+      .....        .*%#=:.:%.  ...  .::--::..     .@=  :@+         .#@+     
-      *@+     -@-   :@= .:=+*#%%%#*-.       .=#%*+@=     -*@@@@@@@@#*=:. =@: .+@=          +@+     
-     .#@=     .#%:  :@*+%@@@@@@@@@@@%:.       .:--=.   .+@@@@@@@@@@@@@@#+@#. .@%.          +@#.    
-     .@@:      .%#. :@@@@@@@@%#*****#*.                .**======**#@@@@@@@=  -@-           +@%.    
-     .@@:       -@#..%@@%*+=-.      ..                            .:-=*@@#.  *#.          .#@*.    
-     .@@:        :*%+++                                                *@-  -@=           :@@+     
-     .@@=         +@*                   .#%%%@@@@@@@@@#.              -@=  :%#.           +@@:     
-     .%@+        .@@                    .%@:::::::::@@+             .+%=:-*@#.           .#@*      
-     .+@*.       .@@.                   .*@.       :@@:           .=%@**#%@=.            -@@-      
-      .@@.       .%@.                    :@+       +@#.           :##*--+#:             .#@#.      
-       =@*.       =@=                    .#@-     .%@:      ...    .  -#+.              -@@:       
-        +@+.      .+@=.                   .*@.....*@=   .-*#%@#*+=:.-*#-               .%@*        
-         +@+.       =%#=:.       .:=++++:   -*###%#-  :*%@#++++%@@@#@=                .#@#.        
-          =@#:.      :=#@#*+-:.=*%@@@@@@@#=          -@@%-.    ..-*@@*:              :#@%:         
-           -%@#-       .-+#@@@@@@%#*+==-:+%@+.       -@@+.          :+@@+.          .+@@#:          
-            .+@@#-.       -%@%*=:.       :%@#+++++++%@-              :%@%-       .=%@%=.           
-              .=%@%+:.  :*@%-.            :%@@@####@@+                :#@@*.    .%@#+.             
-                .-*%%*=*@@#.               -@@%...-@#.                 .+@@#.   .#@=               
-                   .=%@@%=.                .#@@.  *@:                    -%@#.   .*@=              
-                   -%@@%:                   +@@- .@#.                     -%@#.   .#@:             
-                  +@@@#:                    :@@+ -@+                       -%@#:   :@%.            
-                 +@@@+.                     .%@+ +@+                        .%@#.   +@+            
-                -@@@=                       .*@* +@+                         +@@*.  .@@.           
-               .%@@*                         =@#.-@+                         :%@@:   *@=           
-               =@@+.                         :@%..%#.                         +@@+   -@#.           
-"""  
+                                             ...-====+***+++====-...   .-=++++=-..                      
+                         .:---:....    ...-=+#%%@@%%%%##*###%%%@@%%#+=*%%%*++*####*-.                   
+                       :+%%%#%%%%%%*--=#%%%#++=-                 -++%@@=..    ...-+%%*:                 
+                     .*@#-:...::+=+@@@#*=:..                       .#@=            .-*%*:              
+                    :%%=.          :%@:                            .%%.               -#%=.            
+                   -@*.             -@=                             +*.                .=@*:           
+                 .+@+.              .:.   ..-==+*##****##*++==..    ..                   -%%=          
+                .#%-                   :=+**                 *##+-.                       :%@+         
+               -%%:                 .=*#*=:.                  .:=*%#-.                     -@@=        
+              =@*.                -+#*-.   ..                    .:+%%=.                    =@%.       
+            .+@+.               -*#=.     =%.                       .=##+.                  .#@+.      
+           .*@*.              :##=.      -@+                          .-*#-.                 -@%.      
+           -@%.             .+%+.       .%#.                             -##:                .%@-      
+          .*@+             :##:         =@=                               .=#+.    ==.        *@=      
+          .#@=       .   .=%+.         .#@:                    :+:          .*#-.  *@*       .%@-      
+           +@*     .#*. :#%-           :@#.                    :@=            -%#: .%@*:.  .:+@%.      
+           .%@=:..-#%- -%*.            +@=                     :@#.            :*@+..+%@%**%@@#-       
+            :*@@#%@*..*%=              *@:                     .*%.              -%#: .=***%@+.        
+             .-*@@+ :%#:              .*@=                     .#+      :=-.      .*@*.    =@#         
+               *@#:+#=              .+%@@=                     :@+      .#@=        :#%=.  .#@-        
+              =@@##+.        ..   .+#+=@@=                     =@@=.     .*%:        .-##=. *@=        
+         .:::=%@%+:         :%=.:*%*: .@@=                    .#%+%#-     .%#.         .-%#-=@#.       
+         +@%**+-.           *@=*#+:   .-@#.                   :@+ .+%*-.   -@+.          .+%*@@:       
+         :*#=.             :@@*-..:=+: :@%.                   +@:   .=*#+=:.#@.            .=%@*.      
+           -*#-:.         .#@-:+#@@@@= .*@-                  -@* -***+--+*%%@@=          .:-+#@%.      
+           .*@@*.         =@#%@@@@%%*:  :@*.                .#@- =@@@@@%*-::=@*.  .==:.. -%@+=%@-      
+           -@@*-..:-.    .%%=+-:::..     +@=.     ...      =@+. .=++##@@@%: *@:  :@@###*+%%= *@=      
+           =@*=**%@#:    :@-             .*@=.     .#%:   .=@#.      ..::::. -@=  :@%.:::::.  *@+      
+          .%@- ..=@+    .*@.              .#@*      =@%=. .@%.               :@=  :@%.        +@#.     
+          :@@.   .@+    :@#.               .#@+.     *@%#+=@%.               :@+  :@*.        :@@-     
+          :@%.   .#+    :@+                 .=%#=.   +@.:*##*.               :@+  :@+         .@@=     
+          +@+     *#.   :@+      .....        .*%#=:.:%.  ...  .::--::..     .@=  :@+         .#@+     
+          *@+     -@-   :@= .:=+*#%%%#*-.       .=#%*+@=     -*@@@@@@@@#*=:. =@: .+@=          +@+     
+         .#@=     .#%:  :@*+%@@@@@@@@@@@%:.       .:--=.   .+@@@@@@@@@@@@@@#+@#. .@%.          +@#.    
+         .@@:      .%#. :@@@@@@@@%#*****#*.                .**======**#@@@@@@@=  -@-           +@%.    
+         .@@:       -@#..%@@%*+=-.      ..                            .:-=*@@#.  *#.          .#@*.    
+         .@@:        :*%+++                                                *@-  -@=           :@@+     
+         .@@=         +@*                   .#%%%@@@@@@@@@#.              -@=  :%#.           +@@:     
+         .%@+        .@@                    .%@:::::::::@@+             .+%=:-*@#.           .#@*      
+         .+@*.       .@@.                   .*@.       :@@:           .=%@**#%@=.            -@@-      
+          .@@.       .%@.                    :@+       +@#.           :##*--+#:             .#@#.      
+           =@*.       =@=                    .#@-     .%@:      ...    .  -#+.              -@@:       
+            +@+.      .+@=.                   .*@.....*@=   .-*#%@#*+=:.-*#-               .%@*        
+             +@+.       =%#=:.       .:=++++:   -*###%#-  :*%@#++++%@@@#@=                .#@#.        
+              =@#:.      :=#@#*+-:.=*%@@@@@@@#=          -@@%-.    ..-*@@*:              :#@%:         
+               -%@#-       .-+#@@@@@@%#*+==-:+%@+.       -@@+.          :+@@+.          .+@@#:          
+                .+@@#-.       -%@%*=:.       :%@#+++++++%@-              :%@%-       .=%@%=.           
+                  .=%@%+:.  :*@%-.            :%@@@####@@+                :#@@*.    .%@#+.             
+                    .-*%%*=*@@#.               -@@%...-@#.                 .+@@#.   .#@=               
+                       .=%@@%=.                .#@@.  *@:                    -%@#.   .*@=              
+                       -%@@%:                   +@@- .@#.                     -%@#.   .#@:             
+                      +@@@#:                    :@@+ -@+                       -%@#:   :@%.            
+                     +@@@+.                     .%@+ +@+                        .%@#.   +@+            
+                    -@@@=                       .*@* +@+                         +@@*.  .@@.           
+                   .%@@*                         =@#.-@+                         :%@@:   *@=           
+                   =@@+.                         :@%..%#.                         +@@+   -@#.           
+    """  
 
     # Print the ASCII art at the start of the app
     print(stay_comfy)
