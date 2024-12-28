@@ -89,7 +89,6 @@ def limit_repetitions(text):
     (unchanged).
     """
     text = re.sub(r'(.)\1{3,}', r'\1\1\1', text)
-    # ... rest of your limit_repetitions code remains unchanged ...
     def limit_hyphenated_repeats(token):
         pattern = re.compile(r'(\b\w+)(?:-\1){3,}-?')
         while True:
@@ -236,18 +235,12 @@ def transcribe_with_whisper_large(audio_data):
         logging.error(f"Error in transcribe_with_whisper_large: {e}")
         return "Error in transcription"
 
-
-#############################
-#  Gladia-related functions #
-#############################
-
 def get_gladia_key() -> str or None:
     """
     Return the Gladia key if available, otherwise return None.
     """
     load_dotenv()
     key = os.getenv("GLADIA_API_KEY")
-    # If no key, just return None (instead of exiting)
     if not key:
         logging.warning("GLADIA_API_KEY missing from .env; skipping Gladia validation.")
         return None
@@ -312,11 +305,6 @@ def transcribe_with_gladia(audio_data, gladia_key: str) -> str:
         logging.error(f"Exception during Gladia API call: {e}")
         return ""
 
-
-#############################################
-#  Validation & filtering of final results  #
-#############################################
-
 def validate_and_filter_transcription(transcription, audio_np):
     """
     If transcription is in known hallucinated phrases, attempt to verify with Gladia.
@@ -326,37 +314,23 @@ def validate_and_filter_transcription(transcription, audio_np):
     def normalize_text(text):
         return text.rstrip('.?!').lower().strip()
 
-    # Basic check: if it's NOT in the hallucinated list, just do local filtering:
     if transcription not in whisper_hallucinated_phrases:
         return limit_repetitions(transcription)
 
-    # If it IS one of the known hallucinations, attempt Gladia validation:
     gladia_key = get_gladia_key()
     if not gladia_key:
-        # If we have no key, skip Gladia check. Just do local filtering or skip.
-        # Option 1: Return '.' (discard) if it's definitely hallucinated
-        # Option 2: Or apply limit_repetitions anyway. 
-        # Adjust to taste. Here let's discard:
         return "."
 
-    # Try Gladia check
     gladia_transcription = transcribe_with_gladia(audio_np, gladia_key)
     if not gladia_transcription:
-        # Gladia gave us nothing, treat as unverified => discard
         return "."
 
-    # Compare normalized versions
     if normalize_text(gladia_transcription) != normalize_text(transcription):
         return "."
 
-    # If it matches exactly => keep it but limit local spammy repeats
     final = limit_repetitions(gladia_transcription)
     return final
 
-
-#############################################
-#  Networking / Audio streaming components  #
-#############################################
 
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -457,7 +431,6 @@ def transcription_worker():
                 pass
 
             time_since_last_voice = time.time() - last_voice_activity_time
-            # Conditions to decide when to transcribe:
             if (
                 (combined_duration >= target_min_duration and time_since_last_voice >= silence_timeout)
                 or (combined_duration >= target_max_duration)
@@ -504,7 +477,6 @@ def transcription_worker():
 def main():
     start_tcp_server()
 
-    # ASCII art (unchanged, optional)
     stay_comfy = """
     
                                          ...-====+***+++====-...   .-=++++=-..                      
