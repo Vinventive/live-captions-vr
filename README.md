@@ -13,7 +13,7 @@ Additionally, the overlay automatically attempts to translate speech from differ
 `Note: The presence of loud music and background noise may significantly reduce the accuracy of speech recognition, highlighting the need for our further research in this area.`
 
 ### The latest release supports NVIDIA CUDA GPU and CPU mode.
-# [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.1/Hearing-AID-VR-Package-Installer.7z)
+# [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.2/Hearing-AID-VR-Package-Installer.7z)
 <img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
 ## Acknowledgements
