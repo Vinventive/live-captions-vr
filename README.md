@@ -1,18 +1,20 @@
+![lcvr_logo](https://github.com/user-attachments/assets/d1145e5d-9d68-45d2-b53f-eaa223777d52)
 # Live Captions VR Overlay
+
+A standalone VR overlay designed with accessibility in mind using speech recognition technology to deliver closed captions in virtual reality.
 
 ![overlay-test](https://github.com/user-attachments/assets/dd779660-1255-4bef-94bf-c7082f068f50)
 
 `Note: VRChat application used here only as an example for demonstration purposes`
-### Launchable version for Windows is available. 
-It’s a standalone VR overlay that runs alongside SteamVR and is compatible with any game, application, and other VR overlays. 
 
-The overlay facilitates better communication in VR but also allows you to watch Twitch or YouTube content with real-time live captions (whenever platforms don't provide their own automatic captions).
+The overlay facilitates better communication in VR for deaf and hard-of-hearing users and enables you to enjoy all kinds of different media content like Twitch or YouTube with real-time closed captions.
 
-Additionally, the overlay automatically attempts to translate speech from different language into the default language (e.g., English) with various success rate making it a convenient tool for real-time translations.
+Additionally, the overlay will automatically attempt to translate speech from different languages into the default language (e.g., English) or your native language with various success rate making it a convenient tool for real-time translation.
+
 
 `Note: The presence of loud music and background noise may significantly reduce the accuracy of speech recognition, highlighting the need for our further research in this area.`
 
-### The latest release supports NVIDIA CUDA GPU and CPU mode.
+### After installation VR Overlay runs locally on PC, meaning no network connection is required. It supports both NVIDIA CUDA GPUs and CPU mode. The latest version for Windows is available below. 
 # [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.2/Hearing-AID-VR-Package-Installer.7z)
 <img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
