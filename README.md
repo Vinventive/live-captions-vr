@@ -1,4 +1,4 @@
-# Hearing AID VR Overlay
+# Live Captions VR Overlay
 
 ![overlay-test](https://github.com/user-attachments/assets/dd779660-1255-4bef-94bf-c7082f068f50)
 
@@ -6,7 +6,7 @@
 ### Launchable version for Windows is available. 
 It’s a standalone VR overlay that runs alongside SteamVR and is compatible with any game, application, and other VR overlays. 
 
-The overlay not only facilitates better communication in VR but also allows you to watch Twitch or YouTube content with real-time captions (whenever platforms don't provide their own automatic captions).
+The overlay facilitates better communication in VR but also allows you to watch Twitch or YouTube content with real-time live captions (whenever platforms don't provide their own automatic captions).
 
 Additionally, the overlay automatically attempts to translate speech from different language into the default language (e.g., English) with various success rate making it a convenient tool for real-time translations.
 
