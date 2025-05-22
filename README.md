@@ -15,7 +15,7 @@ Additionally, the overlay will automatically attempt to translate speech from di
 `Note: The presence of loud music and background noise may significantly reduce the accuracy of speech recognition, highlighting the need for our further research in this area.`
 
 ### After installation VR Overlay runs locally on PC, meaning no network connection is required. It supports both NVIDIA CUDA GPUs and CPU mode. The latest version for Windows is available below. 
-# [Direct Link to Download](https://github.com/Vinventive/HEARING-AID-VR/releases/download/v0.0.2/Hearing-AID-VR-Package-Installer.7z)
+# [Direct Link to Download](https://github.com/Vinventive/live-captions-vr/releases/download/v0.0.3-alpha/Live-Captions-VR-Package-Installer.7z)
 <img src="https://count.getloli.com/@hearing-aid-vr-overlay?name=hearing-aid-vr-overlay&theme=booru-lewd&padding=7&offset=0&align=top&scale=1.5&pixelated=1&darkmode=auto" />
 
 ## Acknowledgements
@@ -23,5 +23,5 @@ Additionally, the overlay will automatically attempt to translate speech from di
 - icedterminal [FFmpeg installer](https://github.com/icedterminal/ffmpeg-installer)
 - NVIDIA Corporation [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-1-download-archive)
 - Vincent Burel VB-Audio [Virtual Audio Cable Driver](http://www.vb-cable.com/)
-- OpenAI [Whisper](https://huggingface.co/openai/whisper-large-v3-turbo)
+- NVIDIA [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2)
 - Special thanks to Dianamite and TachDeaf for helping with this project
