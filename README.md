@@ -9,9 +9,6 @@ A standalone VR overlay designed with accessibility in mind using speech recogni
 
 The overlay facilitates better communication in VR for deaf and hard-of-hearing users and enables you to enjoy all kinds of different media content like Twitch or YouTube with real-time closed captions.
 
-Additionally, the overlay will automatically attempt to translate speech from different languages into the default language (e.g., English) or your native language with various success rate making it a convenient tool for real-time translation.
-
-
 `Note: The presence of loud music and background noise may significantly reduce the accuracy of speech recognition, highlighting the need for our further research in this area.`
 
 ### After installation VR Overlay runs locally on PC, meaning no network connection is required. It supports both NVIDIA CUDA GPUs and CPU mode. The latest version for Windows is available below. 
