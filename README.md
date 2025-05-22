@@ -18,7 +18,6 @@ The overlay facilitates better communication in VR for deaf and hard-of-hearing 
 ## Acknowledgements
 - NxLL (nilpkthmsk) [Unity - Text Mesh Pro Japanese](https://github.com/nilpkthmsk/Unity_TMP_Japanese)
 - icedterminal [FFmpeg installer](https://github.com/icedterminal/ffmpeg-installer)
-- NVIDIA Corporation [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-1-download-archive)
+- NVIDIA Corporation [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) & [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-1-download-archive)
 - Vincent Burel VB-Audio [Virtual Audio Cable Driver](http://www.vb-cable.com/)
-- NVIDIA [Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2)
 - Special thanks to Dianamite and TachDeaf for helping with this project
